@@ -8,6 +8,8 @@ import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 
+import com.Facturacion.FacturacionM.exception.BusinessException;
+import com.Facturacion.FacturacionM.exception.ResourceNotFoundException;
 import com.Facturacion.FacturacionM.feign.ClienteFeignClient;
 import com.Facturacion.FacturacionM.model.DetalleFactura;
 import com.Facturacion.FacturacionM.model.Factura;
@@ -42,6 +44,9 @@ public class FacturaService {
     }
 
     public void eliminarFactura(Long idFactura) {
+        if (!facturaRepository.existsById(idFactura)) {
+            throw new ResourceNotFoundException("Factura no encontrada: " + idFactura);
+        }
         facturaRepository.deleteById(idFactura);
     }
 
@@ -49,7 +54,11 @@ public class FacturaService {
         Map<String, Object> usuario = clienteFeignClient.obtenerUsuarioPorRut(usuarioRut);
 
         if ("Usuario no disponible".equals(usuario.get("nombre"))) {
-            throw new RuntimeException("El microservicio de usuarios no está disponible.");
+            throw new BusinessException("El microservicio de usuarios no está disponible.");
+        }
+
+        if (detalles == null || detalles.isEmpty()) {
+            throw new BusinessException("La factura debe tener al menos un detalle.");
         }
 
         Factura factura = Factura.builder()
@@ -69,13 +78,13 @@ public class FacturaService {
             detalleFacturaRepository.save(detalle);
         }
 
-        saved.setTotal(calcularTotal(saved.getIdFactura()));
+        saved.setTotal(detalles.stream().mapToDouble(DetalleFactura::getSubtotal).sum());
         return facturaRepository.save(saved);
     }
 
     public double calcularTotal(Long idFactura) {
         Factura factura = facturaRepository.findById(idFactura)
-                .orElseThrow(() -> new RuntimeException("Factura no encontrada: " + idFactura));
+                .orElseThrow(() -> new ResourceNotFoundException("Factura no encontrada: " + idFactura));
         return detalleFacturaRepository.findByFactura(factura)
                 .stream()
                 .mapToDouble(DetalleFactura::getSubtotal)
@@ -84,9 +93,9 @@ public class FacturaService {
 
     public Factura anularFactura(Long idFactura) {
         Factura factura = facturaRepository.findById(idFactura)
-                .orElseThrow(() -> new RuntimeException("Factura no encontrada: " + idFactura));
+                .orElseThrow(() -> new ResourceNotFoundException("Factura no encontrada: " + idFactura));
         if ("ANULADA".equalsIgnoreCase(factura.getEstado())) {
-            throw new RuntimeException("La factura ya está anulada.");
+            throw new BusinessException("La factura ya está anulada.");
         }
         factura.setEstado("ANULADA");
         return facturaRepository.save(factura);
@@ -94,7 +103,7 @@ public class FacturaService {
 
     public Map<String, Object> obtenerFacturaConUsuario(Long idFactura) {
         Factura factura = facturaRepository.findById(idFactura)
-                .orElseThrow(() -> new RuntimeException("Factura no encontrada: " + idFactura));
+                .orElseThrow(() -> new ResourceNotFoundException("Factura no encontrada: " + idFactura));
         Map<String, Object> usuario = clienteFeignClient.obtenerUsuarioPorRut(factura.getUsuarioRut());
         return Map.of("factura", factura, "usuario", usuario);
     }

@@ -5,6 +5,7 @@ import java.util.Optional;
 
 import org.springframework.stereotype.Service;
 
+import com.Facturacion.FacturacionM.exception.ResourceNotFoundException;
 import com.Facturacion.FacturacionM.model.DetalleFactura;
 import com.Facturacion.FacturacionM.model.Factura;
 import com.Facturacion.FacturacionM.repository.DetalleFacturaRepository;
@@ -32,24 +33,27 @@ public class DetalleFacturaService {
 
     public List<DetalleFactura> listarPorFactura(Long idFactura) {
         Factura factura = facturaRepository.findById(idFactura)
-                .orElseThrow(() -> new RuntimeException("Factura no encontrada: " + idFactura));
+                .orElseThrow(() -> new ResourceNotFoundException("Factura no encontrada: " + idFactura));
         return detalleFacturaRepository.findByFactura(factura);
     }
 
     public void eliminarDetalleFactura(Long idDetalleFactura) {
+        if (!detalleFacturaRepository.existsById(idDetalleFactura)) {
+            throw new ResourceNotFoundException("Detalle no encontrado: " + idDetalleFactura);
+        }
         detalleFacturaRepository.deleteById(idDetalleFactura);
     }
 
     public DetalleFactura calcularSubTotal(Long idDetalleFactura) {
         DetalleFactura detalle = detalleFacturaRepository.findById(idDetalleFactura)
-                .orElseThrow(() -> new RuntimeException("Detalle no encontrado: " + idDetalleFactura));
+                .orElseThrow(() -> new ResourceNotFoundException("Detalle no encontrado: " + idDetalleFactura));
         detalle.calcularSubtotal();
         return detalleFacturaRepository.save(detalle);
     }
 
     public DetalleFactura agregarDetalle(Long idFactura, DetalleFactura detalleFactura) {
         Factura factura = facturaRepository.findById(idFactura)
-                .orElseThrow(() -> new RuntimeException("Factura no encontrada: " + idFactura));
+                .orElseThrow(() -> new ResourceNotFoundException("Factura no encontrada: " + idFactura));
         detalleFactura.setFactura(factura);
         detalleFactura.calcularSubtotal();
         return detalleFacturaRepository.save(detalleFactura);
