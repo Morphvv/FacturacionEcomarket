@@ -76,6 +76,7 @@ public class FacturaService {
             detalle.calcularSubtotal();
             detalle.setFactura(saved);
             detalleFacturaRepository.save(detalle);
+            saved.getDetalles().add(detalle);
         }
 
         saved.setTotal(detalles.stream().mapToDouble(DetalleFactura::getSubtotal).sum());
