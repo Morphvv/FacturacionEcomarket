@@ -1,4 +1,7 @@
 {
-    "java.configuration.updateBuildConfiguration": "interactive",
-    "java.compile.nullAnalysis.mode": "automatic"
+    "java.configuration.updateBuildConfiguration": "automatic",
+    "java.compile.nullAnalysis.mode": "automatic",
+    "java.test.config": {
+        "vmArgs": ["-Dnet.bytebuddy.experimental=true"]
+    }
 }
